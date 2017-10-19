@@ -1,14 +1,16 @@
 # dnsmasqstats(.py)
-dnsmasq statistics, top usage
+> dnsmasq statistics, top usage
 
+### Introduction
 This is a simple script that helps you understand the requests made to your DNSMasq server. 
 It could be helpfull to see which clients requests the most, what record types are queried the most and the request itself.
 
+### How to use
 The help function describes all just download or clone and start the it with:
   ./dnsmasqstats
   
-For ease of use:
-
+For the fun of it, below the 'help' output:
+```
 Usage: dnsmasqstats -option arguments
 
 Available options:
@@ -26,13 +28,13 @@ The default number to display is 10 and displays all classes.
 Examples:
 dnsmasqstats -c 10                              Shows a top 10 of requesting clients/hosts
 dnsmasqstats -r 25 -i /var/log/dnsmasq.1        Shows a top 25 of requested records from the rotated logfile
+```
 
 
-
-
+### Example
 An example of output of './dnsmasqstats':
 
-
+```
 Displaying all, set to 10 lines
 
 192.168.100.10                          57695
@@ -65,3 +67,4 @@ aax-eu.amazon-adsystem.com              34
 cl2-cdn.origin-apple.com.akadns.net     32
 teredo.ipv6.microsoft.com               27
 login.live.com                          27
+```
