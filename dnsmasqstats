@@ -1,0 +1,209 @@
+#!/usr/bin/python
+#
+# v1.0 - Created by bartjan@pc-mania.nl, July 2017
+# v1.1 - Improved the error handling, October 2017
+
+import sys
+import re
+import getopt
+from heapq import nlargest
+from operator import itemgetter
+
+# Vars to work with and setup
+InputFile = "/var/log/dnsmasq"
+InputNumber = int(10)
+
+def Help():
+        print """
+Usage: dnsmasqstats -option arguments
+
+Available options:
+
+-h, --help
+
+-a, --all <NR>                          Displays all with optional number of lines per class
+-c, --clients <NR>                      Displays clients (descending) with optional number of lines
+-i, --inputfile <input_filename>        Differ from the default log file
+-r, --records <NR>                      Displays the requested records with optional number of lines
+-t, --types                             Displays the types
+
+The default number to display is 10 and displays all classes.
+
+Examples:
+dnsmasqstats -c 10                              Shows a top 10 of requesting clients/hosts
+dnsmasqstats -r 25 -i /var/log/dnsmasq.1        Shows a top 25 of requested records from the rotated logfile
+
+"""
+
+class Set(object):
+    def __init__(self):
+        self.nr = int()
+
+    def setnr(self,inputnumber):
+        self.nr = inputnumber
+
+    def number(self):
+        return self.nr
+
+class Clients(object):
+    def __init__(self):
+        self.clients = dict()
+
+    def printout(self):
+        return self.clients
+
+    def add(self,client):
+        if client not in self.clients:
+            self.clients.update({client: 1})
+        else:
+            self.clients.update({client: self.clients[client]+1})
+
+    def top(self,nr):
+        for client, number in nlargest(nr, self.clients.iteritems(), key=itemgetter(1)):
+            print '{0:40}{1}'.format(client, number)
+
+class Types(object):
+    def __init__(self):
+        self.rtypes = dict()
+
+    def printout(self):
+        return self.rtypes
+
+    def add(self,rtype):
+        if rtype not in self.rtypes:
+            self.rtypes.update({rtype: 1})
+        else:
+            self.rtypes.update({rtype: self.rtypes[rtype]+1})
+
+    def top(self,nr):
+        for rtype, number in nlargest(nr, self.rtypes.iteritems(), key=itemgetter(1)):
+            print '{0:40}{1}'.format(rtype, number)
+
+class Records(object):
+    def __init__(self):
+        self.records = dict()
+
+    def printout(self):
+        return self.records
+
+    def add(self,record):
+        if record not in self.records:
+            self.records.update({record: 1})
+        else:
+            self.records.update({record: self.records[record]+1})
+
+    def top(self,nr):
+        for record, number in nlargest(nr, self.records.iteritems(), key=itemgetter(1)):
+            print '{0:40}{1}'.format(record, number)
+
+###############
+
+# Definitions
+RequestingClients = Clients()
+RequestingTypes = Types()
+RequestingRecords = Records()
+opts = []
+doubles = False
+temp = []
+arguments = []
+
+try:
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "achirt",["all","clients","help","inputfile","records","types"])
+except:
+    print "\nError, unknown or missing arguments.\n"
+    Help()
+    sys.exit(2)
+
+for x in args:
+    temp.append(x.split('='))
+    for x in temp:
+        for y in x:
+            arguments.append(y)
+if len(sys.argv) > 1 and doubles == False:
+    i = 0
+    for o, a in opts:
+        if o in ['-c','--clients']:
+            Opts = "clients"
+            continue
+        if o in ['-h', '--help']:
+            Help()
+            sys.exit(0)
+        if o in ['-i', '--inputfile']:
+            try:
+                if len(args) <= 1:
+                    args.append(args[0])
+                    args[0] = InputNumber
+            except:
+                print "Error! No input file specified...\n"
+                sys.exit(2)
+            InputFile = args[1]
+            continue
+        if o in ['-r', '--records']:
+            Opts = "records"
+            continue
+        if o in ['-t', '--types']:
+            Opts = "types"
+            continue
+        if o in ['-a', '--all']:
+            Opts = "all"
+            continue
+        i += 1
+else:
+    Opts = "all"
+
+if not args:
+    InputNumber = InputNumber
+else:
+    try:
+        InputNumber = int(args[0])
+    except:
+        print "\nError, unknown or missing arguments.\n"
+        Help()
+        sys.exit(2)
+
+# Reading input
+try:
+    Source = open(InputFile, 'r')
+    try:
+        Data = Source.readlines()
+    finally:
+        Source.close()
+except:
+    print "Error! Can not open: {0}\n".format(InputFile)
+    sys.exit(2)
+
+# Parse lines
+for Line in Data:
+    ReqRE = re.compile('^.*:\squery\[(\S+)\]\s(\S+)\sfrom\s(\S+)$')
+    Req = ReqRE.match(Line)
+    if Req:
+        RequestingClients.add(Req.group(3))
+        RequestingTypes.add(Req.group(1))
+        RequestingRecords.add(Req.group(2))
+
+# Print out the data
+try:
+    print "\nDisplaying {0}, set to {1} lines".format(Opts,InputNumber)
+except:
+    print "\nError, unknown or missing arguments.\n"
+    Help()
+    sys.exit(2)
+
+if Opts == "clients":
+    print
+    RequestingClients.top(InputNumber)
+elif Opts == "types":
+    print 
+    RequestingTypes.top(InputNumber)
+elif Opts == "records":
+    print
+    RequestingRecords.top(InputNumber)
+else:
+    print
+    RequestingClients.top(InputNumber)
+    print 
+    RequestingTypes.top(InputNumber)
+    print
+    RequestingRecords.top(InputNumber)
+
+print
