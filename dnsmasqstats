@@ -25,6 +25,7 @@ Available options:
 -c, --clients <NR>                      Displays clients (descending) with optional number of lines
 -i, --inputfile <input_filename>        Differ from the default log file
 -r, --records <NR>                      Displays the requested records with optional number of lines
+-s, --host <host>                       Displays requests from particular host
 -t, --types                             Displays the types
 
 The default number to display is 10 and displays all classes.
@@ -32,6 +33,7 @@ The default number to display is 10 and displays all classes.
 Examples:
 dnsmasqstats -c 10                              Shows a top 10 of requesting clients/hosts
 dnsmasqstats -r 25 -i /var/log/dnsmasq.1        Shows a top 25 of requested records from the rotated logfile
+dnsmasqstats -a 25 -s 192.168.100.100           Shows a top 25 of requested records from host 192.168.100.100
 
 """
 
@@ -106,9 +108,10 @@ opts = []
 doubles = False
 temp = []
 arguments = []
+Host = ""
 
 try:
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "achi:rt",["all","clients","help","inputfile=","records","types"])
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "achi:rs:t",["all","clients","help","inputfile=","records","host=","types"])
 except:
     print "\nError, unknown or missing arguments.\n"
     Help()
@@ -140,6 +143,9 @@ if len(sys.argv) > 1 and doubles == False:
         if o in ['-a', '--all']:
             Opts = "all"
             continue
+        if o in ['-s', '--host']:
+            Host = a
+            continue
         i += 1
 else:
     Opts = "all"
@@ -165,19 +171,26 @@ except:
     print "Error! Can not open: {0}\n".format(InputFile)
     sys.exit(2)
 
-ReqRE = re.compile('^.*:\squery\[(\S+)\]\s(\S+)\sfrom\s(\S+)$')
+if not Host:
+    ReqRE = re.compile('^.*:\squery\[(\S+)\]\s(\S+)\sfrom\s(\S+)$')
+else:
+    ReqRE = re.compile('^.*:\squery\[(\S+)\]\s(\S+)\sfrom\s' + Host + '$')
 
 # Parse lines
 for Line in Data:
     Req = ReqRE.match(Line)
     if Req:
-        RequestingClients.add(Req.group(3))
+        if not Host:
+            RequestingClients.add(Req.group(3))
         RequestingTypes.add(Req.group(1))
         RequestingRecords.add(Req.group(2))
 
 # Print out the data
 try:
-    print "\nDisplaying {0}, set to {1} lines".format(Opts,InputNumber)
+    if Host:
+        print "\nDisplaying {0} from {1}, set to {2} lines".format(Opts,Host,InputNumber)
+    else:
+        print "\nDisplaying {0}, set to {1} lines".format(Opts,InputNumber)
 except:
     print "\nError, unknown or missing arguments.\n"
     Help()
