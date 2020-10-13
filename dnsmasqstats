@@ -165,9 +165,10 @@ except:
     print "Error! Can not open: {0}\n".format(InputFile)
     sys.exit(2)
 
+ReqRE = re.compile('^.*:\squery\[(\S+)\]\s(\S+)\sfrom\s(\S+)$')
+
 # Parse lines
 for Line in Data:
-    ReqRE = re.compile('^.*:\squery\[(\S+)\]\s(\S+)\sfrom\s(\S+)$')
     Req = ReqRE.match(Line)
     if Req:
         RequestingClients.add(Req.group(3))
