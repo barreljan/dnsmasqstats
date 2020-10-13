@@ -108,7 +108,7 @@ temp = []
 arguments = []
 
 try:
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "achirt",["all","clients","help","inputfile","records","types"])
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "achi:rt",["all","clients","help","inputfile=","records","types"])
 except:
     print "\nError, unknown or missing arguments.\n"
     Help()
@@ -129,14 +129,7 @@ if len(sys.argv) > 1 and doubles == False:
             Help()
             sys.exit(0)
         if o in ['-i', '--inputfile']:
-            try:
-                if len(args) <= 1:
-                    args.append(args[0])
-                    args[0] = InputNumber
-            except:
-                print "Error! No input file specified...\n"
-                sys.exit(2)
-            InputFile = args[1]
+            InputFile = a
             continue
         if o in ['-r', '--records']:
             Opts = "records"
@@ -207,3 +200,5 @@ else:
     RequestingRecords.top(InputNumber)
 
 print
+
+# vim: set tw=0 et :
