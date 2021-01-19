@@ -14,7 +14,7 @@ InputFile = "/var/log/dnsmasq"
 InputNumber = int(10)
 
 def Help():
-        print """
+        print("""
 Usage: dnsmasqstats -option arguments
 
 Available options:
@@ -33,7 +33,7 @@ Examples:
 dnsmasqstats -c 10                              Shows a top 10 of requesting clients/hosts
 dnsmasqstats -r 25 -i /var/log/dnsmasq.1        Shows a top 25 of requested records from the rotated logfile
 
-"""
+""")
 
 class Set(object):
     def __init__(self):
@@ -59,8 +59,8 @@ class Clients(object):
             self.clients.update({client: self.clients[client]+1})
 
     def top(self,nr):
-        for client, number in nlargest(nr, self.clients.iteritems(), key=itemgetter(1)):
-            print '{0:40}{1}'.format(client, number)
+        for client, number in nlargest(nr, self.clients.items(), key=itemgetter(1)):
+            print('{0:40}{1}'.format(client, number))
 
 class Types(object):
     def __init__(self):
@@ -76,8 +76,8 @@ class Types(object):
             self.rtypes.update({rtype: self.rtypes[rtype]+1})
 
     def top(self,nr):
-        for rtype, number in nlargest(nr, self.rtypes.iteritems(), key=itemgetter(1)):
-            print '{0:40}{1}'.format(rtype, number)
+        for rtype, number in nlargest(nr, self.rtypes.items(), key=itemgetter(1)):
+            print('{0:40}{1}'.format(rtype, number))
 
 class Records(object):
     def __init__(self):
@@ -93,8 +93,8 @@ class Records(object):
             self.records.update({record: self.records[record]+1})
 
     def top(self,nr):
-        for record, number in nlargest(nr, self.records.iteritems(), key=itemgetter(1)):
-            print '{0:40}{1}'.format(record, number)
+        for record, number in nlargest(nr, self.records.items(), key=itemgetter(1)):
+            print('{0:40}{1}'.format(record, number))
 
 ###############
 
@@ -103,14 +103,15 @@ RequestingClients = Clients()
 RequestingTypes = Types()
 RequestingRecords = Records()
 opts = []
+opt_extra = False
 doubles = False
 temp = []
 arguments = []
 
 try:
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "achirt",["all","clients","help","inputfile","records","types"])
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "achirtx",["all","clients","help","inputfile","records","types","extra"])
 except:
-    print "\nError, unknown or missing arguments.\n"
+    print("\nError, unknown or missing arguments.\n")
     Help()
     sys.exit(2)
 
@@ -134,7 +135,7 @@ if len(sys.argv) > 1 and doubles == False:
                     args.append(args[0])
                     args[0] = InputNumber
             except:
-                print "Error! No input file specified...\n"
+                print("Error! No input file specified...\n")
                 sys.exit(2)
             InputFile = args[1]
             continue
@@ -147,6 +148,10 @@ if len(sys.argv) > 1 and doubles == False:
         if o in ['-a', '--all']:
             Opts = "all"
             continue
+        if o in ['-x', '--extra']:
+            opt_extra = True
+            continue
+
         i += 1
 else:
     Opts = "all"
@@ -157,7 +162,7 @@ else:
     try:
         InputNumber = int(args[0])
     except:
-        print "\nError, unknown or missing arguments.\n"
+        print("\nError, unknown or missing arguments.\n")
         Help()
         sys.exit(2)
 
@@ -169,41 +174,48 @@ try:
     finally:
         Source.close()
 except:
-    print "Error! Can not open: {0}\n".format(InputFile)
+    print("Error! Can not open: {0}\n".format(InputFile))
     sys.exit(2)
+
+# prepare RE
+if not opt_extra:
+    ReqRE = re.compile('^.*:\squery\[(\S+)\]\s(\S+)\sfrom\s(\S+)$')
+    ReqOffset = 0
+else:
+    ReqRE = re.compile('^.*\sdnsmasq\[([0-9]+)]:\s(\S+)\s(\S+)\squery\[(\S+)\]\s(\S+)\sfrom\s(\S+)$')
+    ReqOffset = 3
 
 # Parse lines
 for Line in Data:
-    ReqRE = re.compile('^.*:\squery\[(\S+)\]\s(\S+)\sfrom\s(\S+)$')
     Req = ReqRE.match(Line)
     if Req:
-        RequestingClients.add(Req.group(3))
-        RequestingTypes.add(Req.group(1))
-        RequestingRecords.add(Req.group(2))
+        RequestingClients.add(Req.group(ReqOffset + 3))
+        RequestingTypes.add(Req.group(ReqOffset + 1))
+        RequestingRecords.add(Req.group(ReqOffset + 2))
 
 # Print out the data
 try:
-    print "\nDisplaying {0}, set to {1} lines".format(Opts,InputNumber)
+    print("\nDisplaying {0}, set to {1} lines".format(Opts,InputNumber))
 except:
-    print "\nError, unknown or missing arguments.\n"
+    print("\nError, unknown or missing arguments.\n")
     Help()
     sys.exit(2)
 
 if Opts == "clients":
-    print
+    print("")
     RequestingClients.top(InputNumber)
 elif Opts == "types":
-    print 
+    print("")
     RequestingTypes.top(InputNumber)
 elif Opts == "records":
     print
     RequestingRecords.top(InputNumber)
 else:
-    print
+    print("")
     RequestingClients.top(InputNumber)
-    print 
+    print("")
     RequestingTypes.top(InputNumber)
-    print
+    print("")
     RequestingRecords.top(InputNumber)
 
-print
+print("")
